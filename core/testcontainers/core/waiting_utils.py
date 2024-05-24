@@ -104,5 +104,5 @@ def wait_for_logs(
         if predicate(stdout) or predicate(stderr):
             return duration
         if duration > timeout:
-            raise TimeoutError(f"Container did not emit logs satisfying predicate in {timeout:.3f} " "seconds")
+            raise TimeoutError(f"Container did not emit logs satisfying predicate in {timeout:.3f} " "seconds. Log: " + stdout)
         time.sleep(interval)
