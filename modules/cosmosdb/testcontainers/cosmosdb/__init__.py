@@ -36,7 +36,7 @@ class CosmosDbContainer(DbContainer):
 
     Example:
 
-        The example will spin up a CosmosDb emulator, connect to it, 
+        The example will spin up a CosmosDb emulator, connect to it,
         create a database and a container.
 
         .. doctest::
@@ -81,8 +81,7 @@ class CosmosDbContainer(DbContainer):
         super().__init__(image=image, **kwargs)
 
         self.partition_count = (
-            partition_count if partition_count else os.environ.get(
-                "AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "")
+            partition_count if partition_count else os.environ.get("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "")
         )
         self.ip_address = ip_address_override if ip_address_override else self.ip_address
         self.with_bind_ports(self.port, self.port)
@@ -111,8 +110,7 @@ class CosmosDbContainer(DbContainer):
 
         def wait_for_successful_request() -> bool:
             try:
-                response = requests.get(
-                    f"{self.get_connection_url()}_explorer/emulator.pem", verify=False)
+                response = requests.get(f"{self.get_connection_url()}_explorer/emulator.pem", verify=False)
                 return response.status_code == 200
             except requests.exceptions.RequestException:
                 return False
