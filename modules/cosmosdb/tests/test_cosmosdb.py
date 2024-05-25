@@ -16,7 +16,7 @@ def test_docker_run_cosmosdb():
         #     credential=CosmosDbContainer.get_account_key(),
         #     connection_verify=False,
         # )
-        
+
         database = client.create_database_if_not_exists(
             id="cosmicworks",
             offer_throughput=400,
@@ -25,12 +25,12 @@ def test_docker_run_cosmosdb():
         partition_key = PartitionKey(
             path="/id",
         )
-        
+
         container = database.create_container_if_not_exists(
             id="products",
             partition_key=partition_key,
         )
-        
+
         new_item = {
             "id": "70b63682-b93a-4c77-aad2-65501347265f",
             "category": "gear-surf-surfboards",
@@ -38,11 +38,11 @@ def test_docker_run_cosmosdb():
             "quantity": 12,
             "sale": False,
         }
-        
+
         created_item = container.upsert_item(new_item)
         existing_item = container.read_item(
             item=new_item["id"],
             partition_key=new_item["id"]
         )
-        
+
         assert created_item == existing_item
