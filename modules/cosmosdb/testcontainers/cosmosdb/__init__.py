@@ -28,6 +28,36 @@ logger = setup_logger(__name__)
 class CosmosDbContainer(DbContainer):
     """
     Azure CosmosDb emulator container.
+    Is it important to understand the limitations of the emulator:
+    https://learn.microsoft.com/en-us/azure/cosmos-db/emulator
+
+    Notably, you cannot change the default account endpoint and account key.
+    Currently, SSL verification is not supported.
+
+    Example:
+
+        The example will spin up a CosmosDb emulator, connect to it, 
+        create a database and a container.
+
+        .. doctest::
+
+            >>> from azure.cosmos import PartitionKey
+            >>> import urllib3
+            >>> from testcontainers.cosmosdb import CosmosDbContainer
+            >>> urllib3.disable_warnings()
+            >>> with CosmosDbContainer() as cosmosdb:
+            ...     client = cosmosdb.get_connection_client()
+            ...     database = client.create_database_if_not_exists(
+            ...         id="cosmicworks",
+            ...         offer_throughput=400,
+            ...     )
+            ...     partition_key = PartitionKey(
+            ...         path="/id",
+            ...     )
+            ...     container = database.create_container_if_not_exists(
+            ...         id="products",
+            ...         partition_key=partition_key,
+            ...     )
     """
 
     localhost = "localhost"
@@ -44,14 +74,15 @@ class CosmosDbContainer(DbContainer):
     ) -> None:
         if "port" in kwargs:
             logger.warn(
-                "Port is specified in kwargs, but it is not supported for CosmosDbContainer. \
+                "Port is specified in kwargs, but it is not supported by CosmosDb emulator. \
                         Default port {self.PORT} will be used."
             )
 
         super().__init__(image=image, **kwargs)
 
         self.partition_count = (
-            partition_count if partition_count else os.environ.get("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "")
+            partition_count if partition_count else os.environ.get(
+                "AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "")
         )
         self.ip_address = ip_address_override if ip_address_override else self.ip_address
         self.with_bind_ports(self.port, self.port)
@@ -80,11 +111,10 @@ class CosmosDbContainer(DbContainer):
 
         def wait_for_successful_request() -> bool:
             try:
-                response = requests.get(f"{self.get_connection_url()}_explorer/emulator.pem", verify=False)
-                logger.info(f"Response status code: {response.status_code}")
+                response = requests.get(
+                    f"{self.get_connection_url()}_explorer/emulator.pem", verify=False)
                 return response.status_code == 200
             except requests.exceptions.RequestException:
-                logger.info("Request failed")
                 return False
 
         start_time = time.time()
