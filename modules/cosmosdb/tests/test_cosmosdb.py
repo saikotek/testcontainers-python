@@ -1,6 +1,4 @@
 import pytest
-from pymongo import MongoClient
-from pymongo.errors import OperationFailure
 from azure.cosmos import PartitionKey, CosmosClient
 import urllib3
 
@@ -11,11 +9,6 @@ def test_docker_run_cosmosdb():
     urllib3.disable_warnings()
     with CosmosDbContainer("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest", ssl_verify=False) as cosmosdb:
         client = cosmosdb.get_connection_client()
-        # client = CosmosClient(
-        #     "https://localhost:8081",
-        #     credential=CosmosDbContainer.get_account_key(),
-        #     connection_verify=False,
-        # )
 
         database = client.create_database_if_not_exists(
             id="cosmicworks",
