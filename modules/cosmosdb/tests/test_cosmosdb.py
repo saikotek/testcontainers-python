@@ -6,9 +6,7 @@ from testcontainers.cosmosdb import CosmosDbContainer
 
 def test_docker_run_cosmosdb():
     urllib3.disable_warnings()
-    with CosmosDbContainer(
-        "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest", ssl_verify=False
-    ) as cosmosdb:
+    with CosmosDbContainer("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest") as cosmosdb:
         client = cosmosdb.get_connection_client()
 
         database = client.create_database_if_not_exists(
