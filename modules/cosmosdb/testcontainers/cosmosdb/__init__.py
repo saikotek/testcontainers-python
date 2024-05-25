@@ -13,48 +13,55 @@
 import os
 import socket
 import time
-import requests
 from typing import Optional
 
+import requests
 from azure.cosmos import CosmosClient
 
 from testcontainers.core.generic import DbContainer
-from testcontainers.core.utils import raise_for_deprecated_parameter, setup_logger
+from testcontainers.core.utils import setup_logger
 from testcontainers.core.waiting_utils import wait_for_logs
 
 logger = setup_logger(__name__)
+
 
 class CosmosDbContainer(DbContainer):
     """
     Azure CosmosDb emulator container.
     """
-    LOCALHOST = "localhost"
-    IP_ADDRESS = socket.gethostbyname(LOCALHOST)
-    PORT = 8081
+
+    localhost = "localhost"
+    ip_address = socket.gethostbyname(localhost)
+    port = 8081
+    timeout = 120.0
 
     def __init__(
         self,
         image: str = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest",
-        ssl_verify: bool = False,
         partition_count: Optional[str] = None,
         ip_address_override: Optional[str] = None,
         **kwargs,
     ) -> None:
-        raise_for_deprecated_parameter(kwargs, "port_to_expose", "port")
+        if "port" in kwargs:
+            logger.warn(
+                "Port is specified in kwargs, but it is not supported for CosmosDbContainer. \
+                        Default port {self.PORT} will be used."
+            )
+
         super().__init__(image=image, **kwargs)
-        self.ssl_verify = ssl_verify
-        self.partition_count = partition_count if partition_count \
-            else os.environ.get("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "")
-        self.ip_address_override = ip_address_override if ip_address_override \
-            else self.IP_ADDRESS
-        self.with_bind_ports(self.PORT, self.PORT)
+
+        self.partition_count = (
+            partition_count if partition_count else os.environ.get("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", "")
+        )
+        self.ip_address = ip_address_override if ip_address_override else self.ip_address
+        self.with_bind_ports(self.port, self.port)
         for p in range(10250, 10256):
             self.with_bind_ports(p, p)
 
     def _configure(self) -> None:
         if self.partition_count:
             self.with_env("AZURE_COSMOS_EMULATOR_PARTITION_COUNT", self.partition_count)
-        self.with_env("AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE", self.IP_ADDRESS)
+        self.with_env("AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE", self.ip_address)
 
     @staticmethod
     def get_account_key() -> str:
@@ -62,19 +69,18 @@ class CosmosDbContainer(DbContainer):
         return "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
 
     def get_connection_url(self) -> str:
-        return f"https://{self.LOCALHOST}:{self.PORT}/"
+        return f"https://{self.localhost}:{self.port}/"
 
     def _connect(self) -> None:
         def check_logs(stdout: str) -> bool:
             return stdout.splitlines()[-1].endswith("Started") if stdout else False
 
-        logger.info("Waiting for logs started marker ...")
-        wait_for_logs(self, check_logs, timeout=120.0)
+        logger.info("Waiting for started marker in logs...")
+        wait_for_logs(self, check_logs, timeout=self.timeout)
 
         def wait_for_successful_request() -> bool:
             try:
-                response = requests.get(
-                    f"{self.get_connection_url()}_explorer/emulator.pem", verify=False)
+                response = requests.get(f"{self.get_connection_url()}_explorer/emulator.pem", verify=False)
                 logger.info(f"Response status code: {response.status_code}")
                 return response.status_code == 200
             except requests.exceptions.RequestException:
@@ -82,11 +88,10 @@ class CosmosDbContainer(DbContainer):
                 return False
 
         start_time = time.time()
-        limit = 120.0
-        logger.info(f"Waiting for endpoint to be available ...")
+        logger.info("Waiting for endpoint to be available...")
         while True:
             duration = time.time() - start_time
-            if duration > limit:
+            if duration > self.timeout:
                 raise TimeoutError("Container did not start in time")
             if wait_for_successful_request():
                 break
@@ -98,10 +103,9 @@ class CosmosDbContainer(DbContainer):
         return self
 
     def get_connection_client(self) -> CosmosClient:
-        logger.info(f"Connection URL: {self.get_connection_url()}")
         return CosmosClient(
             self.get_connection_url(),
             credential=CosmosDbContainer.get_account_key(),
             connection_verify=False,
-            retry_total=3
+            retry_total=3,
         )

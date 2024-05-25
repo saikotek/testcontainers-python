@@ -1,5 +1,4 @@
-import pytest
-from azure.cosmos import PartitionKey, CosmosClient
+from azure.cosmos import PartitionKey
 import urllib3
 
 from testcontainers.cosmosdb import CosmosDbContainer
@@ -7,7 +6,9 @@ from testcontainers.cosmosdb import CosmosDbContainer
 
 def test_docker_run_cosmosdb():
     urllib3.disable_warnings()
-    with CosmosDbContainer("mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest", ssl_verify=False) as cosmosdb:
+    with CosmosDbContainer(
+        "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest", ssl_verify=False
+    ) as cosmosdb:
         client = cosmosdb.get_connection_client()
 
         database = client.create_database_if_not_exists(
@@ -33,9 +34,6 @@ def test_docker_run_cosmosdb():
         }
 
         created_item = container.upsert_item(new_item)
-        existing_item = container.read_item(
-            item=new_item["id"],
-            partition_key=new_item["id"]
-        )
+        existing_item = container.read_item(item=new_item["id"], partition_key=new_item["id"])
 
         assert created_item == existing_item
