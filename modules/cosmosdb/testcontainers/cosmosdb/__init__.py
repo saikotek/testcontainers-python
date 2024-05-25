@@ -70,7 +70,6 @@ class CosmosDbContainer(DbContainer):
 
         logger.info("Waiting for logs started marker ...")
         wait_for_logs(self, check_logs, timeout=120.0)
-        logger.info("Logs started marker found")
 
         def wait_for_successful_request() -> bool:
             try:
@@ -84,6 +83,7 @@ class CosmosDbContainer(DbContainer):
 
         start_time = time.time()
         limit = 120.0
+        logger.info(f"Waiting for endpoint to be available ...")
         while True:
             duration = time.time() - start_time
             if duration > limit:
@@ -91,7 +91,6 @@ class CosmosDbContainer(DbContainer):
             if wait_for_successful_request():
                 break
             time.sleep(1)
-            logger.info(f"Waiting for CosmosDb container to start ... {duration:.3f} seconds")
 
     def start(self) -> "CosmosDbContainer":
         super().start()

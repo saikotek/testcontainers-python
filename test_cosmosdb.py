@@ -10,7 +10,7 @@ def test_docker_run_cosmosdb():
     urllib3.disable_warnings()
     
     client = CosmosClient(
-            "https://localhost:8081",
+            "https://localhost:8081/",
             credential=CosmosDbContainer.get_account_key(),
             connection_verify=False,
         )
